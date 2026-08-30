@@ -42,6 +42,26 @@ export async function saveDraft(draft: MapDraft): Promise<void> {
   }
 }
 
+export async function clearDraft(): Promise<void> {
+  const db = await openDb();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE, "readwrite");
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error("draft clear failed"));
+      tx.objectStore(STORE).clear();
+    });
+  } finally {
+    db.close();
+  }
+  await new Promise<void>((resolve) => {
+    const req = indexedDB.deleteDatabase(DB_NAME);
+    req.onsuccess = () => resolve();
+    req.onerror = () => resolve();
+    req.onblocked = () => resolve();
+  });
+}
+
 export async function loadDraft(): Promise<MapDraft | null> {
   const db = await openDb();
   try {

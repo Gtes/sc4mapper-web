@@ -36,47 +36,70 @@
         </label>
         <label>Region name <input id="name" type="text" value="New Region" /></label>
         <button id="download" type="button" disabled>Download ZIP</button>
-        <div class="tools" id="tools">
-          <button type="button" id="tool-small" data-mode="small" disabled>Small city</button>
-          <button type="button" id="tool-medium" data-mode="medium" disabled>Medium city</button>
-          <button type="button" id="tool-big" data-mode="big" disabled>Big city</button>
-          <button type="button" id="tool-erase" data-mode="erase" disabled>Erase city</button>
-          <button type="button" id="tool-draw" data-mode="draw" disabled>Draw</button>
-          <span class="has-tip">
-            <button type="button" id="tool-stamp" data-mode="heal" disabled>Stamp</button>
-            <span class="tip" role="tooltip">Alt-click the map to pick source terrain (the dashed ring). Then drag to stamp that height and grain elsewhere. Alt-click again to pick a new source. Size and softness match Draw.</span>
-          </span>
-          <button type="button" id="tool-revert" disabled>Revert config</button>
-          <button type="button" id="tool-undo" disabled title="Ctrl+Z / ⌘Z">Undo</button>
-          <button type="button" id="tool-redo" disabled title="Ctrl+Shift+Z / ⌘⇧Z">Redo</button>
-        </div>
-        <div class="draw-opts" id="draw-opts" hidden>
-          <span class="opts-label" id="brush-opts-label">Paint</span>
-          <div id="paint-color-opts">
-          <label class="check"><input type="radio" name="paint-preset" id="paint-water" value="water" checked /> Water</label>
-          <label class="check"><input type="radio" name="paint-preset" id="paint-green" value="green" /> Green</label>
-          <label class="check"><input type="radio" name="paint-preset" id="paint-custom" value="custom" /> Color</label>
-          <label class="color-pick">
-            <input id="paint-color" type="color" value="#487542" />
-            <button type="button" id="paint-sample" disabled>Sample map</button>
-            <span id="paint-height-val" class="opts-meta">height 400</span>
-          </label>
+        <section class="panel">
+          <h2>Cities</h2>
+          <div class="tools">
+            <button type="button" id="tool-small" data-mode="small" disabled>Small city</button>
+            <button type="button" id="tool-medium" data-mode="medium" disabled>Medium city</button>
+            <button type="button" id="tool-big" data-mode="big" disabled>Big city</button>
+            <button type="button" id="tool-erase" data-mode="erase" disabled>Erase city</button>
           </div>
-          <label>Brush size <span id="brush-size-val">16</span>
-            <input id="brush-size" type="range" min="2" max="80" value="16" />
+          <label class="check">
+            <input id="overlay" type="checkbox" checked />
+            Cities overlay
           </label>
-          <label>Softness <span id="brush-soft-val">80</span>
-            <input id="brush-soft" type="range" min="0" max="100" value="80" />
-          </label>
+        </section>
+        <section class="panel">
+          <h2>Terrain</h2>
+          <div class="tools">
+            <button type="button" id="tool-draw" data-mode="draw" disabled>Draw</button>
+            <span class="has-tip">
+              <button type="button" id="tool-stamp" data-mode="heal" disabled>Stamp</button>
+              <span class="tip" role="tooltip">Alt-click the map to pick source terrain (the dashed ring). Then drag to stamp that height and grain elsewhere. Alt-click again to pick a new source. Size and softness match Draw.</span>
+            </span>
+          </div>
+          <div class="draw-opts" id="draw-opts" hidden>
+            <span class="opts-label" id="brush-opts-label">Paint</span>
+            <div id="paint-color-opts">
+            <label class="check"><input type="radio" name="paint-preset" id="paint-water" value="water" checked /> Water</label>
+            <label class="check"><input type="radio" name="paint-preset" id="paint-green" value="green" /> Green</label>
+            <label class="check"><input type="radio" name="paint-preset" id="paint-custom" value="custom" /> Color</label>
+            <label class="color-pick">
+              <input id="paint-color" type="color" value="#487542" />
+              <button type="button" id="paint-sample" disabled>Sample map</button>
+              <span id="paint-height-val" class="opts-meta">height 400</span>
+            </label>
+            </div>
+            <label>Brush size <span id="brush-size-val">16</span>
+              <input id="brush-size" type="range" min="2" max="80" value="16" />
+            </label>
+            <label>Softness <span id="brush-soft-val">80</span>
+              <input id="brush-soft" type="range" min="0" max="100" value="80" />
+            </label>
+          </div>
+        </section>
+        <div class="sidebar-end">
+          <p id="status" class="status"></p>
+          <p class="hint" id="hint">Select a tool, then click the map. Overlay shows city borders.</p>
+          <section class="panel">
+            <h2>History</h2>
+            <div class="tools">
+              <button type="button" id="tool-revert" disabled>Revert config</button>
+              <button type="button" id="tool-undo" disabled title="Ctrl+Z / ⌘Z">Undo</button>
+              <button type="button" id="tool-redo" disabled title="Ctrl+Shift+Z / ⌘⇧Z">Redo</button>
+              <button type="button" id="tool-reset">Reset all</button>
+            </div>
+          </section>
         </div>
-        <label class="check">
-          <input id="overlay" type="checkbox" checked />
-          Cities overlay
-        </label>
-        <p id="status" class="status"></p>
-        <p class="hint" id="hint">Select a tool, then click the map. Overlay shows city borders.</p>
       </aside>
     </div>
+    <dialog id="reset-dialog">
+      <p>Clear the map, undo history, and the saved draft stored in this browser? This cannot be undone.</p>
+      <form method="dialog">
+        <button type="submit" value="cancel">Cancel</button>
+        <button type="submit" value="confirm">Reset all</button>
+      </form>
+    </dialog>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

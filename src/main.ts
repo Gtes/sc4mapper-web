@@ -31,7 +31,7 @@ import {
 import "./style.css";
 import type { Templates, WorkerRequest } from "./export";
 import ExportWorker from "./export.worker.ts?worker";
-import { loadDraft, saveDraft } from "./draft";
+import { clearDraft, loadDraft, saveDraft } from "./draft";
 
 const drop = document.getElementById("drop") as HTMLLabelElement;
 const fileInput = document.getElementById("file") as HTMLInputElement;
@@ -56,6 +56,8 @@ const btnStamp = document.getElementById("tool-stamp") as HTMLButtonElement;
 const btnRevert = document.getElementById("tool-revert") as HTMLButtonElement;
 const btnUndo = document.getElementById("tool-undo") as HTMLButtonElement;
 const btnRedo = document.getElementById("tool-redo") as HTMLButtonElement;
+const btnReset = document.getElementById("tool-reset") as HTMLButtonElement;
+const resetDialog = document.getElementById("reset-dialog") as HTMLDialogElement;
 const drawOpts = document.getElementById("draw-opts") as HTMLDivElement;
 const brushOptsLabel = document.getElementById("brush-opts-label") as HTMLSpanElement;
 const paintColorOpts = document.getElementById("paint-color-opts") as HTMLDivElement;
@@ -128,6 +130,7 @@ const ZOOM_STEP = 1.25;
 let exportWorker: Worker | null = null;
 let exportBusy = false;
 let draftTimer = 0;
+let draftEpoch = 0;
 
 function getExportWorker(): Worker {
   if (exportWorker) return exportWorker;
@@ -144,6 +147,7 @@ function pixelsCopy(): ArrayBuffer {
 
 function writeDraft(): void {
   if (!image) return;
+  const epoch = draftEpoch;
   void saveDraft({
     pixels: pixelsCopy(),
     width: image.width,
@@ -154,6 +158,8 @@ function writeDraft(): void {
     originalCities,
     regionName: nameInput.value,
     overlay: overlayOn,
+  }).then(() => {
+    if (epoch !== draftEpoch) return clearDraft();
   }).catch(() => {
     /* keep editing if storage is unavailable */
   });
@@ -1195,6 +1201,16 @@ btnRevert.addEventListener("click", () => {
 }, { signal });
 btnUndo.addEventListener("click", () => undo(), { signal });
 btnRedo.addEventListener("click", () => redo(), { signal });
+btnReset.addEventListener("click", () => {
+  resetDialog.returnValue = "";
+  if (typeof resetDialog.showModal === "function") resetDialog.showModal();
+  else if (window.confirm("Clear the map, undo history, and the saved draft in this browser?")) {
+    void resetAll();
+  }
+}, { signal });
+resetDialog.addEventListener("close", () => {
+  if (resetDialog.returnValue === "confirm") void resetAll();
+}, { signal });
 brushSizeEl.addEventListener("input", () => {
   brushSizeVal.textContent = brushSizeEl.value;
   if (isBrushMode()) draw();
@@ -1250,6 +1266,56 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") writeDraft();
 }, { signal });
 window.addEventListener("pagehide", () => writeDraft(), { signal });
+
+async function resetAll(): Promise<void> {
+  window.clearTimeout(draftTimer);
+  draftEpoch += 1;
+  image = null;
+  tilesX = 0;
+  tilesY = 0;
+  cities = [];
+  originalCities = [];
+  preview = null;
+  editMode = "none";
+  overlayOn = true;
+  overlayCbx.checked = true;
+  hover = null;
+  hoverPx = null;
+  painting = false;
+  sampling = false;
+  lastPaint = null;
+  undoPixels = null;
+  undoPreview = null;
+  strokeCities = null;
+  healStroke = null;
+  healSource = null;
+  healAlign = null;
+  undoStack = [];
+  redoStack = [];
+  zoom = 1;
+  panX = 0;
+  panY = 0;
+  nameInput.value = "New Region";
+  fileInput.value = "";
+  canvas.hidden = true;
+  canvas.width = 0;
+  canvas.height = 0;
+  canvas.style.transform = "";
+  canvas.style.width = "";
+  canvas.style.height = "";
+  downloadBtn.disabled = true;
+  setToolsEnabled(false);
+  syncToolButtons();
+  syncHistoryButtons();
+  setStatus("Ready. Drop a 16-bit grayscale PNG.");
+  try {
+    await clearDraft();
+  } catch {
+    setStatus("Map cleared, but the saved draft could not be removed.");
+    return;
+  }
+  setStatus("Reset. Draft cleared. Drop a 16-bit grayscale PNG.");
+}
 
 function showRestoredMap(): void {
   if (!image) return;
