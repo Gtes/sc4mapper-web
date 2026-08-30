@@ -129,6 +129,22 @@ body {
   font-weight: 650;
   color: #b8c0cc;
 }
+.sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.sidebar-head h1 {
+  margin: 0;
+}
+#help-btn {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font-size: 13px;
+  background: #2c333c;
+  border: 1px solid #5c687e;
+}
 h1 {
   margin: 0;
   font-size: 1.25rem;
@@ -361,29 +377,95 @@ dialog {
   color: #e8eaed;
   border: 1px solid #5c687e;
   border-radius: 8px;
-  padding: 20px;
-  max-width: 360px;
 }
 dialog::backdrop {
   background: rgba(0, 0, 0, 0.55);
 }
-dialog p {
+#reset-dialog {
+  padding: 20px;
+  max-width: 360px;
+}
+#reset-dialog p {
   margin: 0;
   line-height: 1.45;
   font-size: 14px;
 }
-dialog form {
+#reset-dialog form {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 16px;
 }
-dialog button[value="cancel"] {
+dialog button[value="cancel"],
+dialog button[value="close"] {
   background: #2c333c;
   border: 1px solid #5c687e;
 }
 dialog button[value="confirm"] {
   background: #8b2e2e;
+}
+#help-dialog {
+  inset: 0;
+  width: min(560px, calc(100vw - 40px));
+  height: calc(100vh - 100px);
+  height: calc(100dvh - 100px);
+  max-height: calc(100vh - 100px);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+}
+#help-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.help-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  padding: 14px 18px;
+  border-bottom: 1px solid #3a424c;
+}
+.help-head h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 650;
+}
+.help-head form {
+  margin: 0;
+}
+.help-head button {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+.help-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 18px 24px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #b8c0cc;
+}
+.help-body h3 {
+  margin: 16px 0 6px;
+  font-size: 13px;
+  font-weight: 650;
+  color: #e8eaed;
+}
+.help-body p,
+.help-body ul {
+  margin: 0;
+}
+.help-body ul {
+  padding-left: 1.2em;
+}
+.help-body li + li {
+  margin-top: 6px;
+}
+.help-body code {
+  font-size: 12px;
+  color: #e8eaed;
 }
 @media (max-width: 800px) {
   .layout {

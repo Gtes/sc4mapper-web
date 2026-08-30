@@ -25,7 +25,10 @@
         </div>
       </div>
       <aside class="sidebar">
-        <h1>SC4Mapper web</h1>
+        <div class="sidebar-head">
+          <h1>SC4Mapper web</h1>
+          <button type="button" id="help-btn">Help</button>
+        </div>
         <p class="lead">
           Drop a 16-bit grayscale PNG. Auto-grid large / medium / small cities.
           Download a region ZIP for SimCity 4.
@@ -93,6 +96,58 @@
         </div>
       </aside>
     </div>
+    <dialog id="help-dialog">
+      <div class="help-head">
+        <h2>Help</h2>
+        <form method="dialog">
+          <button type="submit" value="close">Close</button>
+        </form>
+      </div>
+      <div class="help-body">
+        <h3>Start</h3>
+        <ul>
+          <li>Drop a 16-bit grayscale PNG, or click the drop zone to choose one.</li>
+          <li>Size must be <code>tiles × 64 + 1</code> (example: 1025×1025 → 16×16 tiles).</li>
+          <li>Cities are auto-gridded. Name the region, then Download ZIP into <code>Documents/SimCity 4/Regions/</code>.</li>
+          <li>Unsaved work is drafted in this browser. Reload to continue.</li>
+        </ul>
+        <h3>Navigate</h3>
+        <ul>
+          <li>Wheel zooms toward the pointer. <strong>+</strong> / <strong>−</strong> / <strong>Fit</strong> in the map toolbar.</li>
+          <li>Space-drag or middle-drag pans.</li>
+          <li>Z-click zooms in. Alt+Z-click zooms out.</li>
+        </ul>
+        <h3>Cities</h3>
+        <ul>
+          <li>Small / Medium / Big place a city on click. Overlapping tiles are replaced.</li>
+          <li>Erase city removes the city under the click from the config.</li>
+          <li>Cities overlay shows borders on the map.</li>
+          <li>Revert config restores the auto-grid without changing terrain.</li>
+        </ul>
+        <h3>Draw</h3>
+        <ul>
+          <li>Paints height: Water (below the water line), Green, or a custom colour.</li>
+          <li>Sample map (or Alt-click in Draw) picks a nearby colour from the terrain.</li>
+          <li>Brush size and softness apply while you drag.</li>
+        </ul>
+        <h3>Stamp</h3>
+        <ul>
+          <li>Alt-click the map to pick source terrain (dashed ring).</li>
+          <li>Drag to clone that height and grain elsewhere.</li>
+          <li>Alt-click again to pick a new source. Size and softness match Draw.</li>
+        </ul>
+        <h3>History</h3>
+        <ul>
+          <li>Undo / Redo: Ctrl+Z and Ctrl+Shift+Z (⌘Z / ⌘⇧Z on Mac).</li>
+          <li>Reset all clears the map, undo stack, and the saved draft after confirmation.</li>
+        </ul>
+        <h3>About</h3>
+        <p>
+          Browser port of SC4Mapper: 16-bit PNG import, auto city grid, terrain palette,
+          QFS / DBPF save, and region ZIP. Unofficial fan tool, not affiliated with EA or Maxis.
+        </p>
+      </div>
+    </dialog>
     <dialog id="reset-dialog">
       <p>Clear the map, undo history, and the saved draft stored in this browser? This cannot be undone.</p>
       <form method="dialog">

@@ -58,6 +58,8 @@ const btnUndo = document.getElementById("tool-undo") as HTMLButtonElement;
 const btnRedo = document.getElementById("tool-redo") as HTMLButtonElement;
 const btnReset = document.getElementById("tool-reset") as HTMLButtonElement;
 const resetDialog = document.getElementById("reset-dialog") as HTMLDialogElement;
+const helpBtn = document.getElementById("help-btn") as HTMLButtonElement;
+const helpDialog = document.getElementById("help-dialog") as HTMLDialogElement;
 const drawOpts = document.getElementById("draw-opts") as HTMLDivElement;
 const brushOptsLabel = document.getElementById("brush-opts-label") as HTMLSpanElement;
 const paintColorOpts = document.getElementById("paint-color-opts") as HTMLDivElement;
@@ -1198,6 +1200,9 @@ btnRevert.addEventListener("click", () => {
   draw();
   setStatus(`${cityCountStatus()} (reverted)`);
   scheduleDraftSave();
+}, { signal });
+helpBtn.addEventListener("click", () => {
+  if (typeof helpDialog.showModal === "function") helpDialog.showModal();
 }, { signal });
 btnUndo.addEventListener("click", () => undo(), { signal });
 btnRedo.addEventListener("click", () => redo(), { signal });
