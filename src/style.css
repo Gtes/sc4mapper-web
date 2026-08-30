@@ -14,6 +14,7 @@ body {
 }
 .view-wrap {
   position: relative;
+  z-index: 0;
   min-width: 0;
   min-height: 100vh;
 }
@@ -90,6 +91,8 @@ body {
   font-size: 13px;
 }
 .sidebar {
+  position: relative;
+  z-index: 5;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -187,10 +190,9 @@ button:disabled {
 #tool-draw.active { background: #1a6b6b; border-color: #5ee0e0; }
 #tool-stamp.active { background: #5a3a78; border-color: #c9a6ff; }
 .tools .tip {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 8px);
-  width: calc(200% + 8px);
+  position: fixed;
+  z-index: 1000;
+  width: min(260px, calc(100vw - 24px));
   padding: 10px 12px;
   border-radius: 8px;
   background: #11151a;
@@ -204,10 +206,8 @@ button:disabled {
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
-  z-index: 12;
 }
-.tools > .has-tip:hover .tip,
-.tools > .has-tip:focus-within .tip {
+.tools > .has-tip:hover:not(.tip-off) .tip {
   opacity: 1;
   visibility: visible;
 }

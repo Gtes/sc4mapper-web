@@ -1161,6 +1161,27 @@ btnBig.addEventListener("click", () => setEditMode("big"), { signal });
 btnErase.addEventListener("click", () => setEditMode("erase"), { signal });
 btnDraw.addEventListener("click", () => setEditMode("draw"), { signal });
 btnStamp.addEventListener("click", () => setEditMode("heal"), { signal });
+const stampTipWrap = btnStamp.closest(".has-tip");
+if (stampTipWrap instanceof HTMLElement) {
+  const stampTip = stampTipWrap.querySelector(".tip");
+  const placeStampTip = (): void => {
+    if (!(stampTip instanceof HTMLElement)) return;
+    const r = stampTipWrap.getBoundingClientRect();
+    const gap = 8;
+    const width = Math.min(260, window.innerWidth - 24);
+    stampTip.style.width = `${width}px`;
+    stampTip.style.left = `${Math.max(8, r.left - gap - width)}px`;
+    stampTip.style.right = "auto";
+    stampTip.style.bottom = "auto";
+    const h = stampTip.offsetHeight || 80;
+    let top = r.top;
+    if (top + h > window.innerHeight - 8) top = Math.max(8, window.innerHeight - 8 - h);
+    stampTip.style.top = `${top}px`;
+  };
+  stampTipWrap.addEventListener("pointerenter", placeStampTip, { signal });
+  stampTipWrap.addEventListener("pointerdown", () => stampTipWrap.classList.add("tip-off"), { signal });
+  stampTipWrap.addEventListener("pointerleave", () => stampTipWrap.classList.remove("tip-off"), { signal });
+}
 btnRevert.addEventListener("click", () => {
   if (!image) return;
   checkpoint();
