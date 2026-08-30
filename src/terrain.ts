@@ -65,6 +65,61 @@ function buildLut(palette: Record<number, [number, number, number]>): Int32Array
 
 const WATER_LUT = buildLut(PALETTE_WATER);
 const LAND_LUT = buildLut(PALETTE_LAND);
+const WATER_MAX = WATER_LUT.length / 3 - 1;
+const LAND_MAX = LAND_LUT.length / 3 - 1;
+
+/** Unlit palette RGB for a mapper height (PNG/10). Used by the color picker. */
+export function paletteRgbForHeight(height: number, waterLevel = WATER_LEVEL): [number, number, number] {
+  if (height < waterLevel) {
+    let wv = (waterLevel - height) | 0;
+    if (wv < 0) wv = 0;
+    if (wv > WATER_MAX) wv = WATER_MAX;
+    return [WATER_LUT[wv * 3], WATER_LUT[wv * 3 + 1], WATER_LUT[wv * 3 + 2]];
+  }
+  let lv = (height - waterLevel) | 0;
+  if (lv < 0) lv = 0;
+  if (lv > LAND_MAX) lv = LAND_MAX;
+  return [LAND_LUT[lv * 3], LAND_LUT[lv * 3 + 1], LAND_LUT[lv * 3 + 2]];
+}
+
+/** Nearest mapper height whose palette color matches RGB (ignores lighting). */
+export function heightForPaletteRgb(
+  r: number,
+  g: number,
+  b: number,
+  waterLevel = WATER_LEVEL,
+): number {
+  let bestH = 0;
+  let bestD = Infinity;
+  const maxH = waterLevel + LAND_MAX;
+  for (let h = 0; h <= maxH; h++) {
+    const c = paletteRgbForHeight(h, waterLevel);
+    const d = (c[0] - r) ** 2 + (c[1] - g) ** 2 + (c[2] - b) ** 2;
+    if (d < bestD) {
+      bestD = d;
+      bestH = h;
+      if (d === 0) break;
+    }
+  }
+  return bestH;
+}
+
+export function rgbToHex(r: number, g: number, b: number): string {
+  const h = (n: number) => Math.max(0, Math.min(255, n | 0)).toString(16).padStart(2, "0");
+  return `#${h(r)}${h(g)}${h(b)}`;
+}
+
+export function hexToRgb(hex: string): [number, number, number] {
+  const s = hex.replace("#", "");
+  if (s.length === 3) {
+    return [
+      parseInt(s[0] + s[0], 16),
+      parseInt(s[1] + s[1], 16),
+      parseInt(s[2] + s[2], 16),
+    ];
+  }
+  return [parseInt(s.slice(0, 2), 16), parseInt(s.slice(2, 4), 16), parseInt(s.slice(4, 6), 16)];
+}
 
 export function normalize(p: [number, number, number]): [number, number, number] {
   const n = Math.sqrt(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
@@ -74,6 +129,55 @@ export function normalize(p: [number, number, number]): [number, number, number]
 
 export const LIGHT_DIR = normalize([1, -5, -1]);
 
+function sampleH(pixels: Uint16Array, xSize: number, x: number, y: number): number {
+  return pixels[y * xSize + x] / 10;
+}
+
+function shadePixel(
+  pixels: Uint16Array,
+  ySize: number,
+  xSize: number,
+  x: number,
+  y: number,
+  waterLevel: number,
+  lightDir: [number, number, number],
+): [number, number, number] {
+  const H = sampleH(pixels, xSize, x, y);
+  let dx = 0;
+  let dy = 0;
+  let interior = false;
+  if (y > 0 && y < ySize - 1 && x > 0 && x < xSize - 1) {
+    dx = sampleH(pixels, xSize, x - 1, y) - sampleH(pixels, xSize, x + 1, y);
+    dy = sampleH(pixels, xSize, x, y - 1) - sampleH(pixels, xSize, x, y + 1);
+    interior = true;
+  }
+  const mag = Math.sqrt(dx * dx + dy * dy + 4);
+  const nx = interior ? dx / mag : 0;
+  const ny = interior ? 2 / mag : 0;
+  const nz = interior ? dy / mag : 0;
+  const n = ny * 255;
+  const light = nx * lightDir[0] + ny * lightDir[1] + nz * lightDir[2];
+  const c = light < 0 ? 191 - ((light * 64) | 0) : 255;
+  if (H < waterLevel) {
+    let wv = (waterLevel - H) | 0;
+    if (wv < 0) wv = 0;
+    if (wv > WATER_MAX) wv = WATER_MAX;
+    return [WATER_LUT[wv * 3], WATER_LUT[wv * 3 + 1], WATER_LUT[wv * 3 + 2]];
+  }
+  if (n < 20) {
+    const half = c >> 1;
+    return [half, half, half];
+  }
+  let lv = (H - waterLevel) | 0;
+  if (lv < 0) lv = 0;
+  if (lv > LAND_MAX) lv = LAND_MAX;
+  return [
+    (LAND_LUT[lv * 3] * c) >> 8,
+    (LAND_LUT[lv * 3 + 1] * c) >> 8,
+    (LAND_LUT[lv * 3 + 2] * c) >> 8,
+  ];
+}
+
 /** `height` is float32 row-major (already /10, same as desktop save path). */
 export function onePassColors(
   ySize: number,
@@ -82,52 +186,50 @@ export function onePassColors(
   waterLevel = WATER_LEVEL,
   lightDir: [number, number, number] = LIGHT_DIR,
 ): Uint8Array {
+  const png = new Uint16Array(height.length);
+  for (let i = 0; i < height.length; i++) {
+    const v = height[i] * 10;
+    png[i] = v < 0 ? 0 : v > 65535 ? 65535 : v;
+  }
   const rgb = new Uint8Array(ySize * xSize * 3);
-  const waterMax = WATER_LUT.length / 3 - 1;
-  const landMax = LAND_LUT.length / 3 - 1;
   for (let y = 0; y < ySize; y++) {
     for (let x = 0; x < xSize; x++) {
-      const i = y * xSize + x;
-      const H = height[i];
-      let dx = 0;
-      let dy = 0;
-      let interior = false;
-      if (y > 0 && y < ySize - 1 && x > 0 && x < xSize - 1) {
-        dx = height[y * xSize + (x - 1)] - height[y * xSize + (x + 1)];
-        dy = height[(y - 1) * xSize + x] - height[(y + 1) * xSize + x];
-        interior = true;
-      }
-      const mag = Math.sqrt(dx * dx + dy * dy + 4);
-      const nx = interior ? dx / mag : 0;
-      const ny = interior ? 2 / mag : 0;
-      const nz = interior ? dy / mag : 0;
-      const n = ny * 255;
-      const light = nx * lightDir[0] + ny * lightDir[1] + nz * lightDir[2];
-      const c = light < 0 ? 191 - ((light * 64) | 0) : 255;
-      const o = i * 3;
-      if (n < 20) {
-        const half = c >> 1;
-        rgb[o] = half;
-        rgb[o + 1] = half;
-        rgb[o + 2] = half;
-      } else if (H < waterLevel) {
-        let wv = (waterLevel - H) | 0;
-        if (wv < 0) wv = 0;
-        if (wv > waterMax) wv = waterMax;
-        rgb[o] = (WATER_LUT[wv * 3] * c) >> 8;
-        rgb[o + 1] = (WATER_LUT[wv * 3 + 1] * c) >> 8;
-        rgb[o + 2] = (WATER_LUT[wv * 3 + 2] * c) >> 8;
-      } else {
-        let lv = (H - waterLevel) | 0;
-        if (lv < 0) lv = 0;
-        if (lv > landMax) lv = landMax;
-        rgb[o] = (LAND_LUT[lv * 3] * c) >> 8;
-        rgb[o + 1] = (LAND_LUT[lv * 3 + 1] * c) >> 8;
-        rgb[o + 2] = (LAND_LUT[lv * 3 + 2] * c) >> 8;
-      }
+      const col = shadePixel(png, ySize, xSize, x, y, waterLevel, lightDir);
+      const o = (y * xSize + x) * 3;
+      rgb[o] = col[0];
+      rgb[o + 1] = col[1];
+      rgb[o + 2] = col[2];
     }
   }
   return rgb;
+}
+
+/** Recolor a rectangle in an ImageData from PNG uint16 heights. Expands 1px for lighting. */
+export function recolorPatch(
+  data: ImageData,
+  pixels: Uint16Array,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  waterLevel = WATER_LEVEL,
+): void {
+  const w = data.width;
+  const h = data.height;
+  const rx0 = Math.max(0, x0 - 1);
+  const ry0 = Math.max(0, y0 - 1);
+  const rx1 = Math.min(w - 1, x1 + 1);
+  const ry1 = Math.min(h - 1, y1 + 1);
+  for (let y = ry0; y <= ry1; y++) {
+    for (let x = rx0; x <= rx1; x++) {
+      const col = shadePixel(pixels, h, w, x, y, waterLevel, LIGHT_DIR);
+      const o = (y * w + x) * 4;
+      data.data[o] = col[0];
+      data.data[o + 1] = col[1];
+      data.data[o + 2] = col[2];
+      data.data[o + 3] = 255;
+    }
+  }
 }
 
 const THUMB_W = 514;

@@ -12,14 +12,29 @@ body {
   grid-template-columns: minmax(0, 1fr) 320px;
   min-height: 100vh;
 }
+.view-wrap {
+  position: relative;
+  min-width: 0;
+  min-height: 100vh;
+}
 .view {
+  height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 0 0, transparent 0, transparent 7px, #0d1014 7px, #0d1014 8px) 0 0 / 16px 16px,
+    #11151a;
+  min-width: 0;
+}
+.view-stage {
+  width: 100%;
+  height: 100%;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #11151a;
-  min-height: 100vh;
-  min-width: 0;
+  position: relative;
+}
+.view:has(canvas:not([hidden])) .view-stage {
+  display: block;
 }
 .placeholder {
   margin: 0;
@@ -29,6 +44,50 @@ body {
 }
 .view:has(canvas:not([hidden])) .placeholder {
   display: none;
+}
+.zoom-bar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 8px;
+  background: rgba(27, 31, 36, 0.88);
+  border: 1px solid #3a424c;
+}
+.zoom-bar[hidden] {
+  display: none;
+}
+.zoom-bar button {
+  padding: 6px 10px;
+  min-width: 32px;
+  background: #2c333c;
+  border: 1px solid #5c687e;
+}
+.zoom-pct {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+}
+#zoom-val {
+  width: 52px;
+  min-width: 0;
+  padding: 4px 6px;
+  text-align: right;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: #e8eaed;
+  background: #11151a;
+  border: 1px solid #5c687e;
+  border-radius: 4px;
+}
+.zoom-pct span {
+  color: #b8c0cc;
+  font-size: 13px;
 }
 .sidebar {
   display: flex;
@@ -117,8 +176,28 @@ button:disabled {
 #tool-medium.active { background: #2a7a2a; border-color: #6f6; }
 #tool-big.active { background: #2440a8; border-color: #8ab4f8; }
 #tool-erase.active { background: #6b3a12; border-color: #e09a5a; }
-#tool-revert {
+#tool-draw.active { background: #1a6b6b; border-color: #5ee0e0; }
+#tool-revert,
+#tool-undo {
   grid-column: 1 / -1;
+}
+.draw-opts {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #3a424c;
+  border-radius: 8px;
+  background: #242a32;
+}
+.draw-opts[hidden] {
+  display: none;
+}
+.opts-label {
+  font-size: 13px;
+  font-weight: 650;
+}
+input[type="range"] {
+  width: 100%;
 }
 .check {
   display: flex;
@@ -127,22 +206,89 @@ button:disabled {
   gap: 8px;
   font-size: 14px;
 }
+.color-pick {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.color-pick input[type="color"] {
+  width: 44px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #5c687e;
+  border-radius: 4px;
+  background: #11151a;
+  cursor: pointer;
+}
+#paint-sample {
+  padding: 6px 10px;
+  font-size: 13px;
+  background: #2c333c;
+  border: 1px solid #5c687e;
+}
+#paint-sample.active {
+  background: #1a6b6b;
+  border-color: #5ee0e0;
+}
+.opts-meta {
+  color: #8b95a2;
+  font-variant-numeric: tabular-nums;
+}
 canvas {
   display: block;
-  max-width: 100%;
-  max-height: 100vh;
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
   background: #111;
   image-rendering: pixelated;
   cursor: crosshair;
+  touch-action: none;
+  will-change: transform;
+}
+canvas.drawing {
+  cursor: none;
+}
+canvas.drawing.sampling {
+  cursor: copy;
+}
+.view.space-nav,
+.view.space-nav canvas,
+.view.space-nav canvas.drawing,
+.view.space-nav canvas.drawing.sampling {
+  cursor: grab;
+}
+.view.panning,
+.view.panning canvas,
+.view.panning canvas.drawing,
+.view.panning canvas.drawing.sampling {
+  cursor: grabbing;
+}
+.view.zoom-in-nav,
+.view.zoom-in-nav canvas,
+.view.zoom-in-nav canvas.drawing,
+.view.zoom-in-nav canvas.drawing.sampling {
+  cursor: zoom-in;
+}
+.view.zoom-out-nav,
+.view.zoom-out-nav canvas,
+.view.zoom-out-nav canvas.drawing,
+.view.zoom-out-nav canvas.drawing.sampling {
+  cursor: zoom-out;
 }
 @media (max-width: 800px) {
   .layout {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(50vh, 1fr) auto;
   }
-  .view {
+  .view-wrap {
     min-height: 50vh;
     order: 0;
+  }
+  .view {
+    height: 50vh;
   }
   .sidebar {
     max-height: none;

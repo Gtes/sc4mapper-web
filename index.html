@@ -7,10 +7,23 @@
   </head>
   <body>
     <div class="layout">
-      <section class="view" id="view-pane">
-        <p class="placeholder" id="placeholder">Drop a 16-bit PNG or use the panel on the right.</p>
-        <canvas id="view" hidden></canvas>
-      </section>
+      <div class="view-wrap">
+        <section class="view" id="view-pane">
+          <div class="view-stage" id="view-stage">
+            <p class="placeholder" id="placeholder">Drop a 16-bit PNG or use the panel on the right.</p>
+            <canvas id="view" hidden></canvas>
+          </div>
+        </section>
+        <div class="zoom-bar" id="zoom-bar" hidden>
+          <button type="button" id="zoom-out" title="Zoom out">−</button>
+          <label class="zoom-pct" title="Zoom percent">
+            <input id="zoom-val" type="text" inputmode="decimal" value="100" aria-label="Zoom percent" />
+            <span>%</span>
+          </label>
+          <button type="button" id="zoom-in" title="Zoom in">+</button>
+          <button type="button" id="zoom-fit" title="Fit to view">Fit</button>
+        </div>
+      </div>
       <aside class="sidebar">
         <h1>SC4Mapper web</h1>
         <p class="lead">
@@ -22,13 +35,32 @@
           <span>Drop 16-bit PNG here, or click to choose</span>
         </label>
         <label>Region name <input id="name" type="text" value="New Region" /></label>
-        <button id="download" disabled>Download ZIP</button>
+        <button id="download" type="button" disabled>Download ZIP</button>
         <div class="tools" id="tools">
           <button type="button" id="tool-small" data-mode="small" disabled>Small city</button>
           <button type="button" id="tool-medium" data-mode="medium" disabled>Medium city</button>
           <button type="button" id="tool-big" data-mode="big" disabled>Big city</button>
           <button type="button" id="tool-erase" data-mode="erase" disabled>Erase city</button>
+          <button type="button" id="tool-draw" data-mode="draw" disabled>Draw</button>
           <button type="button" id="tool-revert" disabled>Revert config</button>
+          <button type="button" id="tool-undo" disabled>Undo stroke</button>
+        </div>
+        <div class="draw-opts" id="draw-opts" hidden>
+          <span class="opts-label">Paint</span>
+          <label class="check"><input type="radio" name="paint-preset" id="paint-water" value="water" checked /> Water</label>
+          <label class="check"><input type="radio" name="paint-preset" id="paint-green" value="green" /> Green</label>
+          <label class="check"><input type="radio" name="paint-preset" id="paint-custom" value="custom" /> Color</label>
+          <label class="color-pick">
+            <input id="paint-color" type="color" value="#487542" />
+            <button type="button" id="paint-sample" disabled>Sample map</button>
+            <span id="paint-height-val" class="opts-meta">height 400</span>
+          </label>
+          <label>Brush size <span id="brush-size-val">16</span>
+            <input id="brush-size" type="range" min="2" max="80" value="16" />
+          </label>
+          <label>Softness <span id="brush-soft-val">80</span>
+            <input id="brush-soft" type="range" min="0" max="100" value="80" />
+          </label>
         </div>
         <label class="check">
           <input id="overlay" type="checkbox" checked />

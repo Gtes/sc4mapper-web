@@ -17,6 +17,7 @@ export interface ExportProgress {
 }
 
 export interface WorkerRequest {
+  /** Live heightmap (PNG uint16), including any Draw-tool edits. */
   pixels: Uint16Array;
   width: number;
   height: number;
