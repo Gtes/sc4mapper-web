@@ -117,3 +117,87 @@ export function paintLine(
 ): void {
   paintCapsule(pixels, preview, width, height, x0, y0, x1, y1, radius, target, softness, baseline);
 }
+
+export type HealStroke = {
+  ox: number;
+  oy: number;
+  w: number;
+  h: number;
+};
+
+export function beginHealStroke(
+  _baseline: Uint16Array,
+  width: number,
+  height: number,
+  ox: number,
+  oy: number,
+): HealStroke {
+  return { ox, oy, w: width, h: height };
+}
+
+function healCapsule(
+  pixels: Uint16Array,
+  preview: ImageData,
+  width: number,
+  height: number,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  radius: number,
+  softness: number,
+  baseline: Uint16Array,
+  stroke: HealStroke,
+): void {
+  const r = Math.max(1, radius);
+  const minx = Math.max(0, Math.floor(Math.min(x0, x1) - r));
+  const miny = Math.max(0, Math.floor(Math.min(y0, y1) - r));
+  const maxx = Math.min(width - 1, Math.ceil(Math.max(x0, x1) + r));
+  const maxy = Math.min(height - 1, Math.ceil(Math.max(y0, y1) + r));
+  if (maxx < minx || maxy < miny) return;
+  const w = stroke.w;
+  const h = stroke.h;
+  for (let y = miny; y <= maxy; y++) {
+    for (let x = minx; x <= maxx; x++) {
+      const t = brushWeight(distToSegment(x, y, x0, y0, x1, y1), r, softness);
+      if (t <= 0) continue;
+      const sx = x + stroke.ox;
+      const sy = y + stroke.oy;
+      if (sx < 0 || sy < 0 || sx >= w || sy >= h) continue;
+      blendToward(pixels, baseline, y * width + x, baseline[sy * w + sx], t);
+    }
+  }
+  recolorPatch(preview, pixels, minx, miny, maxx, maxy, WATER_LEVEL);
+}
+
+export function healDab(
+  pixels: Uint16Array,
+  preview: ImageData,
+  width: number,
+  height: number,
+  cx: number,
+  cy: number,
+  radius: number,
+  softness: number,
+  baseline: Uint16Array,
+  stroke: HealStroke,
+): void {
+  healCapsule(pixels, preview, width, height, cx, cy, cx, cy, radius, softness, baseline, stroke);
+}
+
+export function healLine(
+  pixels: Uint16Array,
+  preview: ImageData,
+  width: number,
+  height: number,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  radius: number,
+  softness: number,
+  baseline: Uint16Array,
+  stroke: HealStroke,
+): void {
+  healCapsule(pixels, preview, width, height, x0, y0, x1, y1, radius, softness, baseline, stroke);
+}

@@ -8,7 +8,18 @@ import {
   type CitySize,
 } from "./grid";
 import { decodeGray16Png, tilesFromPixels, type Gray16Image } from "./png16";
-import { PAINT_GREEN, PAINT_WATER, paintDab, paintLine, paintTargetPng, type PaintPreset } from "./paint";
+import {
+  PAINT_GREEN,
+  PAINT_WATER,
+  beginHealStroke,
+  healDab,
+  healLine,
+  paintDab,
+  paintLine,
+  paintTargetPng,
+  type HealStroke,
+  type PaintPreset,
+} from "./paint";
 import {
   WATER_LEVEL,
   heightForPaletteRgb,
@@ -41,9 +52,13 @@ const btnMedium = document.getElementById("tool-medium") as HTMLButtonElement;
 const btnBig = document.getElementById("tool-big") as HTMLButtonElement;
 const btnErase = document.getElementById("tool-erase") as HTMLButtonElement;
 const btnDraw = document.getElementById("tool-draw") as HTMLButtonElement;
+const btnStamp = document.getElementById("tool-stamp") as HTMLButtonElement;
 const btnRevert = document.getElementById("tool-revert") as HTMLButtonElement;
 const btnUndo = document.getElementById("tool-undo") as HTMLButtonElement;
+const btnRedo = document.getElementById("tool-redo") as HTMLButtonElement;
 const drawOpts = document.getElementById("draw-opts") as HTMLDivElement;
+const brushOptsLabel = document.getElementById("brush-opts-label") as HTMLSpanElement;
+const paintColorOpts = document.getElementById("paint-color-opts") as HTMLDivElement;
 const paintWater = document.getElementById("paint-water") as HTMLInputElement;
 const paintGreen = document.getElementById("paint-green") as HTMLInputElement;
 const paintCustom = document.getElementById("paint-custom") as HTMLInputElement;
@@ -54,12 +69,12 @@ const brushSizeEl = document.getElementById("brush-size") as HTMLInputElement;
 const brushSizeVal = document.getElementById("brush-size-val") as HTMLSpanElement;
 const brushSoftEl = document.getElementById("brush-soft") as HTMLInputElement;
 const brushSoftVal = document.getElementById("brush-soft-val") as HTMLSpanElement;
-const modeButtons = [btnSmall, btnMedium, btnBig, btnErase, btnDraw];
+const modeButtons = [btnSmall, btnMedium, btnBig, btnErase, btnDraw, btnStamp];
 const ctx = canvas.getContext("2d")!;
 const ac = new AbortController();
 const { signal } = ac;
 
-type EditMode = "none" | "small" | "medium" | "big" | "erase" | "draw";
+type EditMode = "none" | "small" | "medium" | "big" | "erase" | "draw" | "heal";
 
 type HotState = {
   image: Gray16Image | null;
@@ -93,6 +108,10 @@ let sampling = false;
 let lastPaint: { x: number; y: number } | null = null;
 let undoPixels: Uint16Array | null = null;
 let undoPreview: ImageData | null = null;
+let strokeCities: City[] | null = null;
+let healStroke: HealStroke | null = null;
+let healSource: { x: number; y: number } | null = null;
+let healAlign: { ox: number; oy: number } | null = null;
 let customMapper = PAINT_GREEN;
 let zoom = 1;
 let panX = 0;
@@ -191,9 +210,104 @@ function setStatus(msg: string): void {
   statusEl.textContent = msg;
 }
 
+type HistoryEntry = {
+  pixels: Uint16Array;
+  preview: ImageData;
+  cities: City[];
+};
+
+const HISTORY_MAX = 40;
+let undoStack: HistoryEntry[] = [];
+let redoStack: HistoryEntry[] = [];
+
+function syncHistoryButtons(): void {
+  const on = Boolean(image);
+  btnUndo.disabled = !on || (undoStack.length === 0 && !(painting && undoPixels));
+  btnRedo.disabled = !on || redoStack.length === 0;
+}
+
+function snapshotState(): HistoryEntry | null {
+  if (!image || !preview) return null;
+  return {
+    pixels: Uint16Array.from(image.pixels),
+    preview: new ImageData(new Uint8ClampedArray(preview.data), preview.width, preview.height),
+    cities: cloneCities(cities),
+  };
+}
+
+function restoreState(entry: HistoryEntry): void {
+  if (!image || !preview) return;
+  image.pixels.set(entry.pixels);
+  preview.data.set(entry.preview.data);
+  cities = cloneCities(entry.cities);
+  healStroke = null;
+  draw();
+  syncHistoryButtons();
+  scheduleDraftSave();
+}
+
+function checkpoint(): void {
+  const snap = snapshotState();
+  if (!snap) return;
+  undoStack.push(snap);
+  if (undoStack.length > HISTORY_MAX) undoStack.shift();
+  redoStack = [];
+  syncHistoryButtons();
+}
+
+function commitStrokeHistory(): void {
+  if (!undoPixels || !undoPreview || !strokeCities) return;
+  undoStack.push({
+    pixels: undoPixels,
+    preview: undoPreview,
+    cities: strokeCities,
+  });
+  if (undoStack.length > HISTORY_MAX) undoStack.shift();
+  redoStack = [];
+  undoPixels = null;
+  undoPreview = null;
+  strokeCities = null;
+  syncHistoryButtons();
+}
+
+function undo(): void {
+  if (!image || !preview) return;
+  if (painting && undoPixels && undoPreview) {
+    image.pixels.set(undoPixels);
+    preview.data.set(undoPreview.data);
+    painting = false;
+    lastPaint = null;
+    healStroke = null;
+    undoPixels = null;
+    undoPreview = null;
+    strokeCities = null;
+    draw();
+    syncHistoryButtons();
+    setStatus(`${cityCountStatus()} (stroke cancelled)`);
+    return;
+  }
+  if (!undoStack.length) return;
+  const current = snapshotState();
+  if (current) redoStack.push(current);
+  restoreState(undoStack.pop()!);
+  setStatus(`${cityCountStatus()} (undo)`);
+}
+
+function redo(): void {
+  if (!image || !preview || !redoStack.length) return;
+  const current = snapshotState();
+  if (current) {
+    undoStack.push(current);
+    if (undoStack.length > HISTORY_MAX) undoStack.shift();
+  }
+  restoreState(redoStack.pop()!);
+  setStatus(`${cityCountStatus()} (redo)`);
+}
+
 function setToolsEnabled(on: boolean): void {
   for (const b of [...modeButtons, btnRevert]) b.disabled = !on;
-  btnUndo.disabled = !on || !undoPixels;
+  btnUndo.disabled = !on || (undoStack.length === 0 && !(painting && undoPixels));
+  btnRedo.disabled = !on || redoStack.length === 0;
   brushSizeEl.disabled = !on;
   brushSoftEl.disabled = !on;
   paintWater.disabled = !on;
@@ -215,14 +329,21 @@ function sizeForMode(mode: EditMode): CitySize | null {
   return null;
 }
 
+function isBrushMode(mode = editMode): boolean {
+  return mode === "draw" || mode === "heal";
+}
+
 function syncToolButtons(): void {
   btnSmall.classList.toggle("active", editMode === "small");
   btnMedium.classList.toggle("active", editMode === "medium");
   btnBig.classList.toggle("active", editMode === "big");
   btnErase.classList.toggle("active", editMode === "erase");
   btnDraw.classList.toggle("active", editMode === "draw");
-  drawOpts.hidden = editMode !== "draw";
-  canvas.classList.toggle("drawing", editMode === "draw");
+  btnStamp.classList.toggle("active", editMode === "heal");
+  drawOpts.hidden = !isBrushMode();
+  paintColorOpts.hidden = editMode !== "draw";
+  brushOptsLabel.textContent = editMode === "heal" ? "Stamp" : "Paint";
+  canvas.classList.toggle("drawing", isBrushMode());
   const hints: Record<EditMode, string> = {
     none: "Select a tool, then click the map. Space-drag pans · Z-click zooms in · Alt+Z-click zooms out.",
     small: "Click to place a small (1×1) city. Overlapping tiles are replaced.",
@@ -232,10 +353,14 @@ function syncToolButtons(): void {
     draw: sampling
       ? "Click the map to sample a nearby color, then adjust the picker."
       : "Drag to paint. Space-drag pans · Z-click zooms in · Alt+Z-click zooms out.",
+    heal: healSource
+      ? "Drag to clone the Alt-picked terrain (height + grain). Alt-click to pick a new source."
+      : "Alt-click green (or any terrain) to set source, then drag to stamp it.",
   };
   hintEl.textContent = hints[editMode];
   paintSampleBtn.classList.toggle("active", sampling);
   canvas.classList.toggle("sampling", sampling);
+  canvas.classList.toggle("heal-pick", editMode === "heal" && altDown);
 }
 
 function setEditMode(mode: EditMode): void {
@@ -452,11 +577,26 @@ function sampleAt(x: number, y: number): void {
   setStatus(`${cityCountStatus()} · sampled height ${Math.round(customMapper)}`);
 }
 
-function beginStroke(): void {
-  if (!image || !preview) return;
+function beginStroke(hx: number, hy: number): boolean {
+  if (!image || !preview) return false;
+  if (editMode === "heal") {
+    if (!healSource) {
+      setStatus("Alt-click the map to set a Stamp source");
+      return false;
+    }
+    if (!healAlign) {
+      healAlign = { ox: healSource.x - hx, oy: healSource.y - hy };
+    }
+  }
   undoPixels = Uint16Array.from(image.pixels);
   undoPreview = new ImageData(new Uint8ClampedArray(preview.data), preview.width, preview.height);
-  btnUndo.disabled = false;
+  strokeCities = cloneCities(cities);
+  syncHistoryButtons();
+  healStroke = null;
+  if (editMode === "heal" && healAlign) {
+    healStroke = beginHealStroke(undoPixels, image.width, image.height, healAlign.ox, healAlign.oy);
+  }
+  return true;
 }
 
 function currentSoftness(): number {
@@ -465,9 +605,42 @@ function currentSoftness(): number {
 
 function applyDab(x: number, y: number, from: { x: number; y: number } | null): void {
   if (!image || !preview) return;
-  const target = paintTargetPng(currentPreset(), customMapper);
   const radius = Number(brushSizeEl.value);
   const softness = currentSoftness();
+  if (editMode === "heal") {
+    if (!undoPixels || !healStroke) return;
+    if (from) {
+      healLine(
+        image.pixels,
+        preview,
+        image.width,
+        image.height,
+        from.x,
+        from.y,
+        x,
+        y,
+        radius,
+        softness,
+        undoPixels,
+        healStroke,
+      );
+    } else {
+      healDab(
+        image.pixels,
+        preview,
+        image.width,
+        image.height,
+        x,
+        y,
+        radius,
+        softness,
+        undoPixels,
+        healStroke,
+      );
+    }
+    return;
+  }
+  const target = paintTargetPng(currentPreset(), customMapper);
   if (from) {
     paintLine(
       image.pixels,
@@ -605,21 +778,42 @@ function draw(): void {
     }
   }
 
-  if (editMode === "draw" && hoverPx && !spaceDown && !zDown && !panning) {
-    if (sampling && image) {
-      const H = image.pixels[hoverPx.y * image.width + hoverPx.x] / 10;
-      const [r, g, b] = paletteRgbForHeight(H);
-      const hex = rgbToHex(r, g, b);
-      paintColorEl.value = hex;
-      paintHeightVal.textContent = `height ${Math.round(H)}`;
-      strokeCrosshair(hoverPx.x + 0.5, hoverPx.y + 0.5);
-    } else {
-      const r = Number(brushSizeEl.value);
-      const cx = hoverPx.x + 0.5;
-      const cy = hoverPx.y + 0.5;
-      strokeBrushRing(cx, cy, r, false);
-      const core = r * (1 - currentSoftness());
-      if (core > 1.5) strokeBrushRing(cx, cy, core, true);
+  if (isBrushMode() && !spaceDown && !zDown && !panning) {
+    if (editMode === "heal" && (altDown || healSource)) {
+      if (altDown && hoverPx) {
+        strokeCrosshair(hoverPx.x + 0.5, hoverPx.y + 0.5);
+      } else if (healAlign && hoverPx) {
+        const r = Number(brushSizeEl.value);
+        const cx = hoverPx.x + 0.5;
+        const cy = hoverPx.y + 0.5;
+        strokeBrushRing(cx, cy, r, false);
+        const core = r * (1 - currentSoftness());
+        if (core > 1.5) strokeBrushRing(cx, cy, core, true);
+        strokeBrushRing(cx + healAlign.ox, cy + healAlign.oy, r, true);
+        strokeCrosshair(cx + healAlign.ox, cy + healAlign.oy);
+      } else if (healSource) {
+        strokeCrosshair(healSource.x + 0.5, healSource.y + 0.5);
+        if (hoverPx) {
+          const r = Number(brushSizeEl.value);
+          strokeBrushRing(hoverPx.x + 0.5, hoverPx.y + 0.5, r, false);
+        }
+      }
+    } else if (hoverPx) {
+      if (sampling && image) {
+        const H = image.pixels[hoverPx.y * image.width + hoverPx.x] / 10;
+        const [r, g, b] = paletteRgbForHeight(H);
+        const hex = rgbToHex(r, g, b);
+        paintColorEl.value = hex;
+        paintHeightVal.textContent = `height ${Math.round(H)}`;
+        strokeCrosshair(hoverPx.x + 0.5, hoverPx.y + 0.5);
+      } else {
+        const r = Number(brushSizeEl.value);
+        const cx = hoverPx.x + 0.5;
+        const cy = hoverPx.y + 0.5;
+        strokeBrushRing(cx, cy, r, false);
+        const core = r * (1 - currentSoftness());
+        if (core > 1.5) strokeBrushRing(cx, cy, core, true);
+      }
     }
   }
 }
@@ -648,6 +842,12 @@ async function onPng(file: File): Promise<void> {
   preview = buildPreview(image);
   undoPixels = null;
   undoPreview = null;
+  strokeCities = null;
+  healStroke = null;
+  healSource = null;
+  healAlign = null;
+  undoStack = [];
+  redoStack = [];
   if (!nameInput.value || nameInput.value === "New Region") {
     nameInput.value = file.name.replace(/\.png$/i, "") || "New Region";
   }
@@ -678,14 +878,16 @@ drop.addEventListener("drop", (e) => {
 }, { signal });
 
 canvas.addEventListener("click", (e) => {
-  if (!image || editMode === "draw" || editMode === "none" || spaceDown || zDown) return;
+  if (!image || isBrushMode() || editMode === "none" || spaceDown || zDown) return;
   const tile = tileFromEvent(e);
   if (!tile) return;
   if (editMode === "erase") {
+    checkpoint();
     cities = eraseCityAt(cities, tile.tx, tile.ty);
   } else {
     const size = sizeForMode(editMode);
     if (!size) return;
+    checkpoint();
     cities = placeCity(cities, tile.tx, tile.ty, size, tilesX, tilesY);
   }
   draw();
@@ -696,11 +898,21 @@ canvas.addEventListener("click", (e) => {
 canvas.addEventListener("pointerdown", (e) => {
   if (!image) return;
   if (handleNavPointerDown(e)) return;
-  if (editMode !== "draw" || e.button !== 0) return;
+  if (!isBrushMode() || e.button !== 0) return;
   const pt = mapPixelFromEvent(e);
   if (!pt) return;
   e.preventDefault();
-  if (sampling || e.altKey) {
+  if (editMode === "heal" && (e.altKey || altDown)) {
+    healSource = pt;
+    healAlign = null;
+    healStroke = null;
+    hoverPx = pt;
+    syncToolButtons();
+    draw();
+    setStatus(`${cityCountStatus()} · Stamp source ${pt.x},${pt.y}`);
+    return;
+  }
+  if (editMode === "draw" && (sampling || e.altKey)) {
     sampleAt(pt.x, pt.y);
     hoverPx = pt;
     draw();
@@ -712,7 +924,10 @@ canvas.addEventListener("pointerdown", (e) => {
     /* pointer already released */
   }
   painting = true;
-  beginStroke();
+  if (!beginStroke(pt.x, pt.y)) {
+    painting = false;
+    return;
+  }
   applyDab(pt.x, pt.y, null);
   lastPaint = pt;
   hoverPx = pt;
@@ -721,7 +936,7 @@ canvas.addEventListener("pointerdown", (e) => {
 
 canvas.addEventListener("pointermove", (e) => {
   if (!image || panning || spaceDown || zDown) return;
-  if (editMode === "draw") {
+  if (isBrushMode()) {
     const pt = mapPixelFromEvent(e);
     hoverPx = pt;
     if (painting && pt) {
@@ -749,6 +964,7 @@ function endPaint(): void {
   if (!painting) return;
   painting = false;
   lastPaint = null;
+  commitStrokeHistory();
   scheduleDraftSave();
 }
 
@@ -796,6 +1012,18 @@ zoomVal.addEventListener("keydown", (e) => {
 window.addEventListener("keydown", (e) => {
   if (isTextEntry(e.target)) return;
   const mapOn = Boolean(image && !canvas.hidden);
+  const mod = e.metaKey || e.ctrlKey;
+  if (mod && e.code === "KeyZ") {
+    e.preventDefault();
+    if (e.shiftKey) redo();
+    else undo();
+    return;
+  }
+  if (mod && e.code === "KeyY" && !e.shiftKey) {
+    e.preventDefault();
+    redo();
+    return;
+  }
   if (e.code === "Space") {
     if (!spaceDown) {
       spaceDown = true;
@@ -818,6 +1046,8 @@ window.addEventListener("keydown", (e) => {
   if (e.key === "Alt") {
     altDown = true;
     syncNavCursor();
+    syncToolButtons();
+    if (mapOn) draw();
     return;
   }
   if (!mapOn) return;
@@ -848,7 +1078,8 @@ window.addEventListener("keyup", (e) => {
   if (e.key === "Alt") {
     altDown = false;
     syncNavCursor();
-    if (zDown) draw();
+    syncToolButtons();
+    draw();
   }
 }, { capture: true, signal });
 window.addEventListener("blur", () => {
@@ -856,6 +1087,7 @@ window.addEventListener("blur", () => {
   zDown = false;
   altDown = false;
   syncNavCursor();
+  syncToolButtons();
 }, { signal });
 
 canvas.addEventListener("mouseleave", () => {
@@ -928,8 +1160,10 @@ btnMedium.addEventListener("click", () => setEditMode("medium"), { signal });
 btnBig.addEventListener("click", () => setEditMode("big"), { signal });
 btnErase.addEventListener("click", () => setEditMode("erase"), { signal });
 btnDraw.addEventListener("click", () => setEditMode("draw"), { signal });
+btnStamp.addEventListener("click", () => setEditMode("heal"), { signal });
 btnRevert.addEventListener("click", () => {
   if (!image) return;
+  checkpoint();
   cities = cloneCities(originalCities);
   editMode = "none";
   hover = null;
@@ -938,24 +1172,15 @@ btnRevert.addEventListener("click", () => {
   setStatus(`${cityCountStatus()} (reverted)`);
   scheduleDraftSave();
 }, { signal });
-btnUndo.addEventListener("click", () => {
-  if (!image || !preview || !undoPixels || !undoPreview) return;
-  image.pixels.set(undoPixels);
-  preview.data.set(undoPreview.data);
-  undoPixels = null;
-  undoPreview = null;
-  btnUndo.disabled = true;
-  draw();
-  setStatus(`${cityCountStatus()} (stroke undone)`);
-  scheduleDraftSave();
-}, { signal });
+btnUndo.addEventListener("click", () => undo(), { signal });
+btnRedo.addEventListener("click", () => redo(), { signal });
 brushSizeEl.addEventListener("input", () => {
   brushSizeVal.textContent = brushSizeEl.value;
-  if (editMode === "draw") draw();
+  if (isBrushMode()) draw();
 }, { signal });
 brushSoftEl.addEventListener("input", () => {
   brushSoftVal.textContent = brushSoftEl.value;
-  if (editMode === "draw") draw();
+  if (isBrushMode()) draw();
 }, { signal });
 paintWater.addEventListener("change", () => {
   sampling = false;

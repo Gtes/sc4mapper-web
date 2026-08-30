@@ -163,10 +163,18 @@ button:disabled {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+  overflow: visible;
 }
 .tools button {
   background: #2c333c;
   border: 1px solid #5c687e;
+}
+.tools > .has-tip {
+  position: relative;
+  display: grid;
+}
+.tools > .has-tip > button {
+  width: 100%;
 }
 .tools button.active {
   outline: 2px solid #e8eaed;
@@ -177,8 +185,33 @@ button:disabled {
 #tool-big.active { background: #2440a8; border-color: #8ab4f8; }
 #tool-erase.active { background: #6b3a12; border-color: #e09a5a; }
 #tool-draw.active { background: #1a6b6b; border-color: #5ee0e0; }
-#tool-revert,
-#tool-undo {
+#tool-stamp.active { background: #5a3a78; border-color: #c9a6ff; }
+.tools .tip {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  width: calc(200% + 8px);
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #11151a;
+  border: 1px solid #5c687e;
+  color: #e8eaed;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  z-index: 12;
+}
+.tools > .has-tip:hover .tip,
+.tools > .has-tip:focus-within .tip {
+  opacity: 1;
+  visibility: visible;
+}
+#tool-revert {
   grid-column: 1 / -1;
 }
 .draw-opts {
@@ -195,6 +228,13 @@ button:disabled {
 .opts-label {
   font-size: 13px;
   font-weight: 650;
+}
+#paint-color-opts {
+  display: grid;
+  gap: 8px;
+}
+#paint-color-opts[hidden] {
+  display: none;
 }
 input[type="range"] {
   width: 100%;
@@ -251,7 +291,8 @@ canvas {
 canvas.drawing {
   cursor: none;
 }
-canvas.drawing.sampling {
+canvas.drawing.sampling,
+canvas.drawing.heal-pick {
   cursor: copy;
 }
 .view.space-nav,

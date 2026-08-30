@@ -42,11 +42,17 @@
           <button type="button" id="tool-big" data-mode="big" disabled>Big city</button>
           <button type="button" id="tool-erase" data-mode="erase" disabled>Erase city</button>
           <button type="button" id="tool-draw" data-mode="draw" disabled>Draw</button>
+          <span class="has-tip">
+            <button type="button" id="tool-stamp" data-mode="heal" disabled>Stamp</button>
+            <span class="tip" role="tooltip">Alt-click the map to pick source terrain (the dashed ring). Then drag to stamp that height and grain elsewhere. Alt-click again to pick a new source. Size and softness match Draw.</span>
+          </span>
           <button type="button" id="tool-revert" disabled>Revert config</button>
-          <button type="button" id="tool-undo" disabled>Undo stroke</button>
+          <button type="button" id="tool-undo" disabled title="Ctrl+Z / ⌘Z">Undo</button>
+          <button type="button" id="tool-redo" disabled title="Ctrl+Shift+Z / ⌘⇧Z">Redo</button>
         </div>
         <div class="draw-opts" id="draw-opts" hidden>
-          <span class="opts-label">Paint</span>
+          <span class="opts-label" id="brush-opts-label">Paint</span>
+          <div id="paint-color-opts">
           <label class="check"><input type="radio" name="paint-preset" id="paint-water" value="water" checked /> Water</label>
           <label class="check"><input type="radio" name="paint-preset" id="paint-green" value="green" /> Green</label>
           <label class="check"><input type="radio" name="paint-preset" id="paint-custom" value="custom" /> Color</label>
@@ -55,6 +61,7 @@
             <button type="button" id="paint-sample" disabled>Sample map</button>
             <span id="paint-height-val" class="opts-meta">height 400</span>
           </label>
+          </div>
           <label>Brush size <span id="brush-size-val">16</span>
             <input id="brush-size" type="range" min="2" max="80" value="16" />
           </label>
