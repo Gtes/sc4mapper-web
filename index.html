@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SC4Mapper web</title>
+  </head>
+  <body>
+    <div class="layout">
+      <section class="view" id="view-pane">
+        <p class="placeholder" id="placeholder">Drop a 16-bit PNG or use the panel on the right.</p>
+        <canvas id="view" hidden></canvas>
+      </section>
+      <aside class="sidebar">
+        <h1>SC4Mapper web</h1>
+        <p class="lead">
+          Drop a 16-bit grayscale PNG. Auto-grid large / medium / small cities.
+          Download a region ZIP for SimCity 4.
+        </p>
+        <label class="drop" id="drop">
+          <input id="file" type="file" accept="image/png,.png" hidden />
+          <span>Drop 16-bit PNG here, or click to choose</span>
+        </label>
+        <label>Region name <input id="name" type="text" value="New Region" /></label>
+        <button id="download" disabled>Download ZIP</button>
+        <div class="tools" id="tools">
+          <button type="button" id="tool-small" data-mode="small" disabled>Small city</button>
+          <button type="button" id="tool-medium" data-mode="medium" disabled>Medium city</button>
+          <button type="button" id="tool-big" data-mode="big" disabled>Big city</button>
+          <button type="button" id="tool-erase" data-mode="erase" disabled>Erase city</button>
+          <button type="button" id="tool-revert" disabled>Revert config</button>
+        </div>
+        <label class="check">
+          <input id="overlay" type="checkbox" checked />
+          Cities overlay
+        </label>
+        <p id="status" class="status"></p>
+        <p class="hint" id="hint">Select a tool, then click the map. Overlay shows city borders.</p>
+      </aside>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "sc4mapper-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "fflate": "^0.8.2",
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vite": "^6.2.0"
+  }
+}
