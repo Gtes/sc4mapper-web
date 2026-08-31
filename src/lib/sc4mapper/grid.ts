@@ -1,3 +1,8 @@
+/**
+ * Port of SC4Mapper-2026: src/sc4mapper/region.py (`BuildBestConfig`, city layout)
+ * Original 2013: config.bmp packing (large / medium / small cities).
+ */
+
 export type CitySize = 1 | 2 | 4;
 
 export interface City {

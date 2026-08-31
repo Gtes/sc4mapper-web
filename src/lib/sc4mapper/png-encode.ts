@@ -1,3 +1,8 @@
+/**
+ * Port of SC4Mapper-2026: PNG bytes that Python writes via Pillow
+ * (`terrain.py` `generateImage` / region-view thumbnails).
+ */
+
 import { zlibSync } from "fflate";
 
 const CRC_TABLE = new Uint32Array(256);

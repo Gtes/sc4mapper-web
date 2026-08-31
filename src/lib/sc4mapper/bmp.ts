@@ -1,4 +1,7 @@
-/** 24-bit Windows BMP (bottom-up BGR), matching typical PIL `config.bmp` output. */
+/**
+ * Port of SC4Mapper-2026: region `config.bmp` write (PIL in src/sc4mapper/app.py /
+ * src/sc4mapper/region.py). 24-bit Windows BMP, bottom-up BGR.
+ */
 
 export function encodeRgbBmp(width: number, height: number, rgb: Uint8Array): Uint8Array {
   const rowStride = ((width * 3 + 3) & ~3);

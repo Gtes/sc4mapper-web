@@ -1,5 +1,6 @@
-/** Clone a blank city template and patch height, position, and region-view PNGs.
- *  Mirrors Python `SaveFile.Save` in `region.py`.
+/**
+ * Port of SC4Mapper-2026: src/sc4mapper/region.py (`SaveFile.Save`)
+ * Original 2013: DBPF city save / blank city template patching.
  */
 
 import { decode, encode } from "./qfs";

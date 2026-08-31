@@ -36,6 +36,13 @@ by Wouanagaine and JoeST.
 - Draft autosave in IndexedDB — reload and the unsaved map comes back
 - Zoom and pan (wheel, Fit, Space-drag, Z-click)
 
+## Repository layout
+
+- `src/lib/sc4mapper/` — TypeScript port of the Python mapper (QFS, grid, DBPF, terrain, PNG, ZIP)
+- `src/tools/` — web editor tools (Draw, Stamp, city place/erase)
+- `src/app/` — editor shell (canvas, zoom/pan, history, draft, session)
+- `src/main.ts` — boot and event wiring
+
 ## What Changed
 
 - Ported the mapper import pipeline to TypeScript in the browser:

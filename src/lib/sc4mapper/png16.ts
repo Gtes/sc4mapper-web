@@ -1,3 +1,8 @@
+/**
+ * Port of SC4Mapper-2026: src/sc4mapper/png16.py
+ * Original 2013: 16-bit grayscale PNG heightmap import (Pillow `I` / `I;16`).
+ */
+
 import { unzlibSync } from "fflate";
 
 const PNG_SIG = [137, 80, 78, 71, 13, 10, 26, 10];

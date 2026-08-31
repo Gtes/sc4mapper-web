@@ -1,4 +1,7 @@
-/** QFS / RefPack codec. Port of SC4Mapper-2026 `qfs.py` (Denis Auroux v1.22). */
+/**
+ * Port of SC4Mapper-2026: src/sc4mapper/qfs.py
+ * Original 2013: Modules/qfs.c (Denis Auroux QFS v1.22).
+ */
 
 const QFS_MAXITER = 50;
 const WINDOW_LEN = 1 << 17;

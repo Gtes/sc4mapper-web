@@ -1,3 +1,8 @@
+/**
+ * Port of SC4Mapper-2026: region export in src/sc4mapper/app.py +
+ * src/sc4mapper/region.py (`Save` / ZIP of `.sc4` cities + config.bmp).
+ */
+
 import JSZip from "jszip";
 import { encodeRgbBmp } from "./bmp";
 import { CityTemplate, templateNameForSize } from "./dbpf";

@@ -1,4 +1,7 @@
-/** Port of SC4Mapper `terrain.py` + default palettes from `config/SC4Mapper.ini`. */
+/**
+ * Port of SC4Mapper-2026: src/sc4mapper/terrain.py + config/SC4Mapper.ini palettes
+ * Original 2013: Modules/terrain.cpp (Wouanagaine).
+ */
 
 import { encodeRgbaPng } from "./png-encode";
 

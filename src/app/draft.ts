@@ -1,4 +1,4 @@
-import type { City } from "./grid";
+import type { City } from "../lib/sc4mapper";
 
 const DB_NAME = "sc4mapper-web";
 const STORE = "draft";

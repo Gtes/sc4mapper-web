@@ -1,4 +1,4 @@
-import { WATER_LEVEL, recolorPatch } from "./terrain";
+import { WATER_LEVEL, recolorPatch } from "../lib/sc4mapper";
 
 /** Mapper units (PNG/10). Water is below 250. */
 export const PAINT_WATER = 200;
