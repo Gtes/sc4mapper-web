@@ -71,6 +71,12 @@ Out: open existing regions, SC4M, 8-bit/RGB import, desktop UI.
 
 ## License
 
-See `LICENSE`. Source retains the original SC4Mapper-2013 copyright
-(Wouanagaine, 2013). This is an unofficial fan tool, not affiliated with
-EA or Maxis.
+See `LICENSE`.
+
+- Original mapper pipeline: copyright (c) 2013 Wouanagaine (SC4Mapper-2013 /
+  SC4Mapper-2026).
+- Browser UI and editor (Draw, Stamp, draft, undo/redo, canvas tools):
+  copyright (c) 2026 Gtes.
+
+Redistribution of source must keep both notices. This is an unofficial fan
+tool, not affiliated with EA or Maxis.

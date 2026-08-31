@@ -1,4 +1,13 @@
 Copyright (c) 2013, Wouanagaine
+Copyright (c) 2026, Gtes
+
+Portions of this software (QFS, DBPF city save, BuildBestConfig city grid,
+terrain palette, and blank city templates) are derived from SC4Mapper-2013
+and the SC4Mapper-2026 Python port.
+
+The browser UI and editor (including Draw, Stamp, draft save, undo/redo,
+and related canvas tools) are original to this repository.
+
 All rights reserved.
 
 Redistribution and use in source forms, with or without
