@@ -115,6 +115,15 @@ body {
   gap: 12px;
   padding-top: 4px;
 }
+.gh-link {
+  align-self: center;
+  display: flex;
+  color: #8b95a3;
+  text-decoration: none;
+}
+.gh-link:hover {
+  color: #e8eaed;
+}
 .panel {
   display: grid;
   gap: 8px;
@@ -137,6 +146,28 @@ body {
 }
 .sidebar-head h1 {
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.support-ukraine {
+  display: inline-flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+.support-ukraine:hover {
+  opacity: 0.85;
+}
+.support-ukraine__flag__blue {
+  width: 20px;
+  height: 6.25px;
+  background: #005BBB;
+}
+.support-ukraine__flag__yellow {
+  width: 20px;
+  height: 6.25px;
+  background: #FFD500;
 }
 #help-btn {
   flex-shrink: 0;
@@ -415,7 +446,7 @@ dialog button[value="confirm"] {
 }
 #help-dialog {
   inset: 0;
-  width: min(560px, calc(100vw - 40px));
+  width: min(670px, calc(100vw - 40px));
   height: calc(100vh - 100px);
   height: calc(100dvh - 100px);
   max-height: calc(100vh - 100px);
