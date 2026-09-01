@@ -10,7 +10,7 @@
       <div class="view-wrap">
         <section class="view" id="view-pane">
           <div class="view-stage" id="view-stage">
-            <p class="placeholder" id="placeholder">Drop a 16-bit PNG or use the panel on the right.</p>
+            <p class="placeholder" id="placeholder">Drop a 16-bit PNG or SC4M, or use the panel on the right.</p>
             <canvas id="view" hidden></canvas>
           </div>
         </section>
@@ -30,15 +30,18 @@
           <button type="button" id="help-btn">Help</button>
         </div>
         <p class="lead">
-          Drop a 16-bit grayscale PNG. Auto-grid large / medium / small cities.
-          Download a region ZIP for SimCity 4.
+          Drop a 16-bit grayscale PNG or an SC4M share pack. Auto-grid large /
+          medium / small cities. ZIP is for SimCity 4; SC4M is for sharing.
         </p>
         <label class="drop" id="drop">
-          <input id="file" type="file" accept="image/png,.png" hidden />
-          <span>Drop 16-bit PNG here, or click to choose</span>
+          <input id="file" type="file" accept="image/png,.png,.sc4m,.SC4M" hidden />
+          <span>Drop 16-bit PNG or SC4M here, or click to choose</span>
         </label>
         <label>Region name <input id="name" type="text" value="New Region" /></label>
-        <button id="download" type="button" disabled>Download ZIP</button>
+        <div class="download-row">
+          <button id="download" type="button" disabled title="Region folder for SimCity 4">Download ZIP</button>
+          <button id="download-sc4m" type="button" disabled title="Share pack for Simtropolis / SC4Mapper">Download SC4M</button>
+        </div>
         <section class="panel">
           <h2>Cities</h2>
           <div class="tools">
@@ -106,9 +109,10 @@
       <div class="help-body">
         <h3>Start</h3>
         <ul>
-          <li>Drop a 16-bit grayscale PNG, or click the drop zone to choose one.</li>
-          <li>Size must be <code>tiles × 64 + 1</code> (example: 1025×1025 → 16×16 tiles).</li>
-          <li>Cities are auto-gridded. Name the region, then Download ZIP into <code>Documents/SimCity 4/Regions/</code>.</li>
+          <li>Drop a 16-bit grayscale PNG or an SC4M file, or click the drop zone to choose one.</li>
+          <li>PNG size must be <code>tiles × 64 + 1</code> (example: 1025×1025 → 16×16 tiles).</li>
+          <li>Cities are auto-gridded from a PNG. An SC4M file keeps the city layout it was saved with.</li>
+          <li>Name the region, then Download ZIP into <code>Documents/SimCity 4/Regions/</code>.</li>
           <li>Unsaved work is drafted in this browser. Reload to continue.</li>
         </ul>
         <h3>Navigate</h3>
@@ -136,6 +140,12 @@
           <li>Drag to clone that height and grain elsewhere.</li>
           <li>Alt-click again to pick a new source. Size and softness match Draw.</li>
         </ul>
+        <h3>Share</h3>
+        <ul>
+          <li><strong>Download ZIP</strong> is the playable region: unzip into <code>Documents/SimCity 4/Regions/</code>.</li>
+          <li><strong>Download SC4M</strong> is a share pack (height + city grid). It is not playable in-game by itself.</li>
+          <li>Drop an SC4M to open it, edit, then ZIP when you want to play, or SC4M again to share.</li>
+        </ul>
         <h3>History</h3>
         <ul>
           <li>Undo / Redo: Ctrl+Z and Ctrl+Shift+Z (⌘Z / ⌘⇧Z on Mac).</li>
@@ -143,8 +153,8 @@
         </ul>
         <h3>About</h3>
         <p>
-          Browser port of SC4Mapper: 16-bit PNG import, auto city grid, terrain palette,
-          QFS / DBPF save, and region ZIP. Unofficial fan tool, not affiliated with EA or Maxis.
+          Browser port of SC4Mapper: 16-bit PNG and SC4M import, auto city grid, terrain palette,
+          QFS / DBPF save, region ZIP, and SC4M export. Unofficial fan tool, not affiliated with EA or Maxis.
         </p>
       </div>
     </dialog>

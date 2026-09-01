@@ -53,7 +53,7 @@ if (import.meta.hot) {
 
 dom.fileInput.addEventListener("change", () => {
   const f = dom.fileInput.files?.[0];
-  if (f) session.onPng(f).catch((e) => setStatus(e instanceof Error ? e.message : String(e)));
+  if (f) session.onFile(f).catch((e) => setStatus(e instanceof Error ? e.message : String(e)));
 }, { signal });
 
 dom.drop.addEventListener("dragover", (e) => {
@@ -65,7 +65,7 @@ dom.drop.addEventListener("drop", (e) => {
   e.preventDefault();
   dom.drop.classList.remove("over");
   const f = e.dataTransfer?.files[0];
-  if (f) session.onPng(f).catch((err) => setStatus(err instanceof Error ? err.message : String(err)));
+  if (f) session.onFile(f).catch((err) => setStatus(err instanceof Error ? err.message : String(err)));
 }, { signal });
 
 dom.canvas.addEventListener("click", (e) => tools.onCityClick(e), { signal });
@@ -222,6 +222,10 @@ dom.canvas.addEventListener("mouseleave", () => {
 dom.downloadBtn.addEventListener("click", (e) => {
   e.preventDefault();
   session.downloadZip();
+}, { signal });
+dom.downloadSc4mBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  session.downloadSc4m();
 }, { signal });
 
 dom.btnSmall.addEventListener("click", () => tools.setEditMode("small"), { signal });

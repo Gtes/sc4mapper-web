@@ -21,6 +21,7 @@ export function bindDom() {
     fileInput: el<HTMLInputElement>("file"),
     nameInput: el<HTMLInputElement>("name"),
     downloadBtn: el<HTMLButtonElement>("download"),
+    downloadSc4mBtn: el<HTMLButtonElement>("download-sc4m"),
     statusEl: el<HTMLParagraphElement>("status"),
     canvas,
     ctx,

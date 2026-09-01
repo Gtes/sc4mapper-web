@@ -202,8 +202,17 @@ button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
-#download {
+.download-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.download-row button {
   width: 100%;
+}
+#download-sc4m {
+  background: #2c333c;
+  border: 1px solid #5c687e;
 }
 .tools {
   display: grid;

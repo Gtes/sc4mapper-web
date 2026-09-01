@@ -108,6 +108,20 @@ export function buildBestCities(tilesX: number, tilesY: number): City[] {
   return citiesFromPixels(buildBestPixels(tilesX, tilesY));
 }
 
+/** Rebuild cities from packed RGB (`config.bmp` / SC4M `SC4C` chunk). */
+export function citiesFromConfigRgb(tilesX: number, tilesY: number, rgb: Uint8Array): City[] {
+  if (rgb.byteLength !== tilesX * tilesY * 3) {
+    throw new Error(`config rgb size does not match ${tilesX}×${tilesY}`);
+  }
+  const pix: RGB[][] = Array.from({ length: tilesY }, (_, y) =>
+    Array.from({ length: tilesX }, (_, x): RGB => {
+      const i = (y * tilesX + x) * 3;
+      return [rgb[i], rgb[i + 1], rgb[i + 2]];
+    }),
+  );
+  return citiesFromPixels(pix);
+}
+
 const SMALL_COLORS = ["#FF7777", "#FF0000"];
 const MEDIUM_COLORS = ["#00FF00", "#99FF00", "#00FF99", "#55FF55"];
 const LARGE_COLORS = [

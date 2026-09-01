@@ -1,5 +1,5 @@
-/** PNG load, draft save, reset, and ZIP export. */
-import { buildBestCities, cloneCities, decodeGray16Png, tilesFromPixels, type WorkerRequest } from "../lib/sc4mapper";
+/** PNG / SC4M load, draft save, reset, ZIP and SC4M export. */
+import { buildBestCities, cloneCities, decodeGray16Png, decodeSc4m, encodeSc4m, tilesFromPixels, type City, type WorkerRequest } from "../lib/sc4mapper";
 import ExportWorker from "../lib/sc4mapper/export.worker.ts?worker";
 import { clearDraft, loadDraft, saveDraft, type MapDraft } from "./draft";
 import type { Dom } from "./dom";
@@ -60,42 +60,100 @@ export function createSession(
     s.draftTimer = window.setTimeout(writeDraft, 400);
   }
 
-  async function onPng(file: File): Promise<void> {
-    hooks.setStatus("Reading PNG…");
-    dom.downloadBtn.disabled = true;
-    const buf = new Uint8Array(await file.arrayBuffer());
-    const decoded = decodeGray16Png(buf);
-    const nextTilesX = tilesFromPixels(decoded.width);
-    const nextTilesY = tilesFromPixels(decoded.height);
-    if (nextTilesX < 1 || nextTilesY < 1) {
-      s.image = null;
-      dom.canvas.hidden = true;
-      dom.zoomBar.hidden = true;
-      tools.setEnabled(false);
-      throw new Error(
-        `PNG must be (N×64+1) pixels on each side (65, 129, 257, 513, 1025, …). This file is ${decoded.width}×${decoded.height}.`,
-      );
-    }
-    s.image = decoded;
-    s.tilesX = nextTilesX;
-    s.tilesY = nextTilesY;
-    s.cities = buildBestCities(s.tilesX, s.tilesY);
-    s.originalCities = cloneCities(s.cities);
+  function syncExportButtons(): void {
+    const ready = Boolean(s.image) && !s.exportBusy;
+    dom.downloadBtn.disabled = !ready || !s.templates;
+    dom.downloadSc4mBtn.disabled = !ready;
+  }
+
+  function triggerDownload(blob: Blob, filename: string): void {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.rel = "noopener";
+    a.click();
+    window.setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
+  }
+
+  function looksLikeSc4m(name: string, buf: Uint8Array): boolean {
+    if (/\.sc4m$/i.test(name)) return true;
+    if (/\.png$/i.test(name) || (buf[0] === 0x89 && buf[1] === 0x50)) return false;
+    return buf[0] === 0x78;
+  }
+
+  function applyLoadedMap(
+    pixels: Uint16Array,
+    width: number,
+    height: number,
+    tilesX: number,
+    tilesY: number,
+    cities: City[],
+    fileName: string,
+    nameExt: RegExp,
+  ): void {
+    s.image = { width, height, pixels };
+    s.tilesX = tilesX;
+    s.tilesY = tilesY;
+    s.cities = cities;
+    s.originalCities = cloneCities(cities);
     s.preview = buildPreview(s.image);
     s.stampStroke = null;
     s.stampSource = null;
     s.stampAlign = null;
     history.clear();
     if (!dom.nameInput.value || dom.nameInput.value === "New Region") {
-      dom.nameInput.value = file.name.replace(/\.png$/i, "") || "New Region";
+      dom.nameInput.value = fileName.replace(nameExt, "") || "New Region";
     }
     view.draw();
     nav.fitToView();
-    dom.downloadBtn.disabled = false;
+    syncExportButtons();
     tools.setEnabled(true);
     tools.syncButtons();
     hooks.setStatus(cityCountStatus(s));
     writeDraft();
+  }
+
+  async function onFile(file: File): Promise<void> {
+    const buf = new Uint8Array(await file.arrayBuffer());
+    const sc4m = looksLikeSc4m(file.name, buf);
+    hooks.setStatus(sc4m ? "Reading SC4M…" : "Reading PNG…");
+    try {
+      if (sc4m) {
+        const decoded = decodeSc4m(buf);
+        applyLoadedMap(
+          decoded.pixels,
+          decoded.width,
+          decoded.height,
+          decoded.tilesX,
+          decoded.tilesY,
+          decoded.cities,
+          file.name,
+          /\.sc4m$/i,
+        );
+        return;
+      }
+      const decoded = decodeGray16Png(buf);
+      const nextTilesX = tilesFromPixels(decoded.width);
+      const nextTilesY = tilesFromPixels(decoded.height);
+      if (nextTilesX < 1 || nextTilesY < 1) {
+        throw new Error(
+          `PNG must be (N×64+1) pixels on each side (65, 129, 257, 513, 1025, …). This file is ${decoded.width}×${decoded.height}.`,
+        );
+      }
+      applyLoadedMap(
+        decoded.pixels,
+        decoded.width,
+        decoded.height,
+        nextTilesX,
+        nextTilesY,
+        buildBestCities(nextTilesX, nextTilesY),
+        file.name,
+        /\.png$/i,
+      );
+    } catch (err) {
+      syncExportButtons();
+      throw err;
+    }
   }
 
   async function resetAll(): Promise<void> {
@@ -132,18 +190,18 @@ export function createSession(
     dom.canvas.style.transform = "";
     dom.canvas.style.width = "";
     dom.canvas.style.height = "";
-    dom.downloadBtn.disabled = true;
+    syncExportButtons();
     tools.setEnabled(false);
     tools.syncButtons();
     history.syncButtons();
-    hooks.setStatus("Ready. Drop a 16-bit grayscale PNG.");
+    hooks.setStatus("Ready. Drop a 16-bit grayscale PNG or an SC4M file.");
     try {
       await clearDraft();
     } catch {
       hooks.setStatus("Map cleared, but the saved draft could not be removed.");
       return;
     }
-    hooks.setStatus("Reset. Draft cleared. Drop a 16-bit grayscale PNG.");
+    hooks.setStatus("Reset. Draft cleared. Drop a 16-bit grayscale PNG or an SC4M file.");
   }
 
   function applyDraft(draft: MapDraft | null): boolean {
@@ -178,7 +236,7 @@ export function createSession(
     } else {
       nav.fitToView();
     }
-    dom.downloadBtn.disabled = !s.templates;
+    syncExportButtons();
     hooks.setStatus(restored?.status || cityCountStatus(s));
   }
 
@@ -203,14 +261,14 @@ export function createSession(
     if (s.image) showRestoredMap(restored);
     else {
       tools.setEnabled(false);
-      hooks.setStatus("Ready. Drop a 16-bit grayscale PNG.");
+      hooks.setStatus("Ready. Drop a 16-bit grayscale PNG or an SC4M file.");
     }
   }
 
   function downloadZip(): void {
     if (!s.image || !s.templates || s.exportBusy) return;
     s.exportBusy = true;
-    dom.downloadBtn.disabled = true;
+    syncExportButtons();
     writeDraft();
     hooks.setStatus("Preparing ZIP…");
     const pixels = new Uint16Array(s.image.pixels);
@@ -230,7 +288,7 @@ export function createSession(
     const worker = getExportWorker();
     const finish = (ok: boolean, message: string) => {
       s.exportBusy = false;
-      dom.downloadBtn.disabled = false;
+      syncExportButtons();
       hooks.setStatus(message);
       if (!ok) {
         worker.terminate();
@@ -242,12 +300,7 @@ export function createSession(
       if (msg.type === "progress") {
         hooks.setStatus(`${msg.message} (${msg.current}/${msg.total})`);
       } else if (msg.type === "done") {
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(msg.blob);
-        a.download = `${sanitizeName(dom.nameInput.value)}.zip`;
-        a.rel = "noopener";
-        a.click();
-        window.setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
+        triggerDownload(msg.blob, `${sanitizeName(dom.nameInput.value)}.zip`);
         finish(true, "ZIP downloaded. Unzip into Documents/SimCity 4/Regions/");
       } else if (msg.type === "error") {
         finish(false, msg.message || "ZIP export failed");
@@ -263,7 +316,37 @@ export function createSession(
     }
   }
 
-  return { writeDraft, scheduleDraftSave, onPng, resetAll, boot, downloadZip };
+  function downloadSc4m(): void {
+    if (!s.image || s.exportBusy) return;
+    s.exportBusy = true;
+    syncExportButtons();
+    writeDraft();
+    hooks.setStatus("Encoding SC4M…");
+    try {
+      const bytes = encodeSc4m(
+        s.image.pixels,
+        s.image.width,
+        s.image.height,
+        s.tilesX,
+        s.tilesY,
+        s.cities,
+      );
+      const packed = new ArrayBuffer(bytes.byteLength);
+      new Uint8Array(packed).set(bytes);
+      triggerDownload(
+        new Blob([packed], { type: "application/octet-stream" }),
+        `${sanitizeName(dom.nameInput.value)}.sc4m`,
+      );
+      hooks.setStatus("SC4M downloaded. Share this file; use Download ZIP to play in SimCity 4.");
+    } catch (err) {
+      hooks.setStatus(err instanceof Error ? err.message : String(err));
+    } finally {
+      s.exportBusy = false;
+      syncExportButtons();
+    }
+  }
+
+  return { writeDraft, scheduleDraftSave, onFile, onPng: onFile, resetAll, boot, downloadZip, downloadSc4m };
 }
 
 export type Session = ReturnType<typeof createSession>;

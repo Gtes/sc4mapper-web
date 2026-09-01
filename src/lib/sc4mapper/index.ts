@@ -10,6 +10,7 @@
  *   bmp.ts         config.bmp write in app.py / region.py
  *   png-encode.ts  Pillow PNG output used by terrain.py generateImage
  *   export.ts      app.py + region.py region ZIP
+ *   sc4m.ts        app.py ExportAsSC4M / CreateRgnFromSC4M
  *
  * Web UI (Draw, Stamp, draft) lives in src/tools/ and src/app/ — not here.
  */
@@ -22,6 +23,7 @@ export {
   eraseCityAt,
   placeCity,
   cityFileName,
+  citiesFromConfigRgb,
   configRgb,
   type City,
   type CitySize,
@@ -31,3 +33,4 @@ export { decodeGray16Png, tilesFromPixels, type Gray16Image } from "./png16";
 export { encodeRgbBmp } from "./bmp";
 export { encodeRgbaPng } from "./png-encode";
 export { buildRegionZip, type Templates, type WorkerRequest, type ExportProgress } from "./export";
+export { encodeSc4m, decodeSc4m, type Sc4mMap } from "./sc4m";
